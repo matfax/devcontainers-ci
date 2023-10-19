@@ -6,6 +6,7 @@ import {ExecFunction} from './exec';
 import {getAbsolutePath} from './file';
 import {substituteValues} from './envvars';
 import {parseGroup, parsePasswd} from './users';
+import {DevContainerConfig} from "./config";
 
 export async function isDockerBuildXInstalled(
 	exec: ExecFunction,
@@ -21,6 +22,7 @@ export async function buildImage(
 	subFolder: string,
 	skipContainerUserIdUpdate: boolean,
 	cacheFrom: string[],
+	buildArgs: string[],
 ): Promise<string> {
 	const folder = path.join(checkoutPath, subFolder);
 	const devcontainerJsonPath = path.join(
@@ -28,6 +30,11 @@ export async function buildImage(
 		'.devcontainer/devcontainer.json',
 	);
 	const devcontainerConfig = await config.loadFromFile(devcontainerJsonPath);
+	const splitBuildArgs: Record<string, string> = {};
+	for (const item of buildArgs) {
+		const [key, value] = item.split('=');
+		splitBuildArgs[key] = value;
+	}
 
 	// build the image from the .devcontainer spec
 	await buildImageBase(
@@ -37,6 +44,7 @@ export async function buildImage(
 		folder,
 		devcontainerConfig,
 		cacheFrom,
+		splitBuildArgs,
 	);
 
 	if (!devcontainerConfig.remoteUser || skipContainerUserIdUpdate == true) {
@@ -59,8 +67,9 @@ async function buildImageBase(
 	imageName: string,
 	imageTag: string | undefined,
 	folder: string,
-	devcontainerConfig: config.DevContainerConfig,
+	devcontainerConfig: DevContainerConfig,
 	cacheFrom: string[],
+	buildArgs?: Record<string, string>,
 ): Promise<void> {
 	const configDockerfile = config.getDockerfile(devcontainerConfig);
 	if (!configDockerfile) {
@@ -89,9 +98,11 @@ async function buildImageBase(
 	args.push('type=inline');
 	args.push('--output=type=docker');
 
-	const buildArgs = devcontainerConfig.build?.args;
-	for (const argName in buildArgs) {
-		const argValue = substituteValues(buildArgs[argName]);
+	const buildArgsFromFile = devcontainerConfig.build?.args;
+	const allBuildArgs = {...buildArgsFromFile, ...buildArgs};
+
+	for (const argName in allBuildArgs) {
+		const argValue = substituteValues(allBuildArgs[argName]);
 		args.push('--build-arg', `${argName}=${argValue}`);
 	}
 

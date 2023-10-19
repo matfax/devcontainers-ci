@@ -158,6 +158,7 @@ export interface DevContainerCliBuildArgs {
   userDataFolder?: string;
   output?: string,
   noCache?: boolean,
+  buildArgs?: string[],
 }
 async function devContainerBuild(
   args: DevContainerCliBuildArgs,
@@ -187,6 +188,11 @@ async function devContainerBuild(
   } else if (args.additionalCacheFroms) {
     args.additionalCacheFroms.forEach(cacheFrom =>
       commandArgs.push('--cache-from', cacheFrom),
+    );
+  }
+  if (args.buildArgs) {
+    args.buildArgs.forEach(buildArg =>
+      commandArgs.push('--build-arg', buildArg),
     );
   }
   return await runSpecCliJsonCommand<DevContainerCliBuildResult>({

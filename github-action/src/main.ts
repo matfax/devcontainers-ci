@@ -48,6 +48,7 @@ export async function runMain(): Promise<void> {
 		const imageTag = emptyStringAsUndefined(core.getInput('imageTag'));
 		const platform = emptyStringAsUndefined(core.getInput('platform'));
 		const subFolder: string = core.getInput('subFolder');
+		const buildArgs: string[] = core.getMultilineInput('buildArgs');
 		const runCommand = core.getInput('runCmd');
 		const inputEnvs: string[] = core.getMultilineInput('env');
 		const inputEnvsWithDefaults = populateDefaults(inputEnvs);
@@ -114,6 +115,7 @@ export async function runMain(): Promise<void> {
 				userDataFolder,
 				output: buildxOutput,
 				noCache,
+				buildArgs,
 			};
 			const result = await devcontainer.build(args, log);
 
